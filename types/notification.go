@@ -92,10 +92,13 @@ type CloudConfig struct {
 
 // DispatcherConfig represents a dispatcher configuration
 type DispatcherConfig struct {
-	ID       int
-	Name     string
-	Type     string
-	URL      string
-	Template string
-	Headers  map[string]string
+	ID       int               `yaml:"id" json:"id"`
+	Name     string            `yaml:"name" json:"name"`
+	Type     string            `yaml:"type" json:"type"` // "webhook", "telegram"
+	URL      string            `yaml:"url" json:"url"`
+	Template string            `yaml:"template" json:"template"`
+	Headers  map[string]string `yaml:"headers" json:"headers"`
+	BotToken string            `yaml:"bot_token,omitempty" json:"bot_token,omitempty"`
+	ChatID   int               `yaml:"chat_id,omitempty" json:"chat_id,omitempty"`
+	Message  string            `yaml:"message,omitempty" json:"message,omitempty"`
 }

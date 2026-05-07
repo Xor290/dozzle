@@ -96,7 +96,7 @@ type Subscription struct {
 	ContainerExpression string `json:"containerExpression" yaml:"containerExpression"`
 	MetricExpression    string `json:"metricExpression,omitempty" yaml:"metricExpression,omitempty"`
 	EventExpression     string `json:"eventExpression,omitempty" yaml:"eventExpression,omitempty"`
-	Cooldown            int    `json:"cooldown,omitempty" yaml:"cooldown,omitempty"`       // seconds between metric notifications, default 300
+	Cooldown            int    `json:"cooldown,omitempty" yaml:"cooldown,omitempty"`         // seconds between metric notifications, default 300
 	SampleWindow        int    `json:"sampleWindow,omitempty" yaml:"sampleWindow,omitempty"` // seconds of samples to evaluate, default 15
 
 	// Compiled filter expressions
@@ -183,6 +183,17 @@ type DispatcherConfig struct {
 	Template string            `json:"template,omitempty" yaml:"template,omitempty"` // Go template for custom payload format
 	Headers  map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`   // Custom HTTP headers
 	Prefix   string            `json:"prefix,omitempty" yaml:"-"`                    // Cloud dispatcher API key prefix (not persisted)
+	BotToken string            `yaml:"bot_token,omitempty" json:"bot_token,omitempty"`
+	ChatID   int               `yaml:"chat_id,omitempty" json:"chat_id,omitempty"`
+	Message  string            `yaml:"message,omitempty" json:"message,omitempty"`
+}
+
+type DispatcherConfigTelegram struct {
+	ID       int    `json:"id"`
+	BotToken string `json:"bot_token"`
+	ChatId   int    `json:"chat_id"`
+	Message  string `json:"message"`
+	Enable   bool   `json:"enable_notification"`
 }
 
 // Config represents the persisted notification configuration

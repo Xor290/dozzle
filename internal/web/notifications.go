@@ -45,6 +45,9 @@ type DispatcherResponse struct {
 	Template *string           `json:"template,omitempty"`
 	Headers  map[string]string `json:"headers,omitempty"`
 	Prefix   *string           `json:"prefix,omitempty"`
+	BotToken *string           `json:"bot_token,omitempty"`
+	ChatID   *int              `json:"chat_id,omitempty"`
+	Message  *string           `json:"message,omitempty"`
 }
 
 type NotificationRuleInput struct {
@@ -77,6 +80,9 @@ type DispatcherInput struct {
 	URL      *string           `json:"url,omitempty"`
 	Template *string           `json:"template,omitempty"`
 	Headers  map[string]string `json:"headers,omitempty"`
+	BotToken *string           `json:"bot_token,omitempty"`
+	ChatID   *int              `json:"chat_id,omitempty"`
+	Message  *string           `json:"message,omitempty"`
 }
 
 type PreviewInput struct {
@@ -101,6 +107,12 @@ type TestWebhookInput struct {
 	URL      string            `json:"url"`
 	Template *string           `json:"template,omitempty"`
 	Headers  map[string]string `json:"headers,omitempty"`
+}
+
+type TestTelegramInput struct {
+	BotToken string `json:"bot_token"`
+	ChatID   int    `json:"chat_id"`
+	Message  string `json:"message,omitempty"`
 }
 
 type TestWebhookResult struct {
@@ -184,6 +196,18 @@ func dispatcherConfigToResponse(d *notification.DispatcherConfig) *DispatcherRes
 	if d.Prefix != "" {
 		prefix = &d.Prefix
 	}
+	var botToken *string
+	if d.BotToken != "" {
+		botToken = &d.BotToken
+	}
+	var chatID *int
+	if d.ChatID != 0 {
+		chatID = &d.ChatID
+	}
+	var message *string
+	if d.Message != "" {
+		message = &d.Message
+	}
 	return &DispatcherResponse{
 		ID:       d.ID,
 		Name:     d.Name,
@@ -192,6 +216,9 @@ func dispatcherConfigToResponse(d *notification.DispatcherConfig) *DispatcherRes
 		Template: template,
 		Headers:  headers,
 		Prefix:   prefix,
+		BotToken: botToken,
+		ChatID:   chatID,
+		Message:  message,
 	}
 }
 
@@ -421,6 +448,25 @@ func (h *handler) createDispatcher(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		d = webhook
+	case "telegram":
+		message := ""
+		if input.Message != nil {
+			message = *input.Message
+		}
+		botToken := ""
+		if input.BotToken != nil {
+			botToken = *input.BotToken
+		}
+		chatID := 0
+		if input.ChatID != nil {
+			chatID = *input.ChatID
+		}
+		telegram, err := dispatcher.NewTelegramDispatcher(message, botToken, chatID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		d = telegram
 	default:
 		writeError(w, http.StatusBadRequest, "unknown dispatcher type")
 		return
@@ -434,6 +480,9 @@ func (h *handler) createDispatcher(w http.ResponseWriter, r *http.Request) {
 		Type:     input.Type,
 		URL:      input.URL,
 		Template: input.Template,
+		BotToken: input.BotToken,
+		ChatID:   input.ChatID,
+		Message:  input.Message,
 	}
 	if len(input.Headers) > 0 {
 		resp.Headers = input.Headers
@@ -471,6 +520,25 @@ func (h *handler) updateDispatcher(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		d = webhook
+	case "telegram":
+		message := ""
+		if input.Message != nil {
+			message = *input.Message
+		}
+		botToken := ""
+		if input.BotToken != nil {
+			botToken = *input.BotToken
+		}
+		chatId := 0
+		if input.ChatID != nil {
+			chatId = *input.ChatID
+		}
+		telegram, err := dispatcher.NewTelegramDispatcher(message, botToken, chatId)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		d = telegram
 	default:
 		writeError(w, http.StatusBadRequest, "unknown dispatcher type")
 		return
@@ -484,6 +552,9 @@ func (h *handler) updateDispatcher(w http.ResponseWriter, r *http.Request) {
 		Type:     input.Type,
 		URL:      input.URL,
 		Template: input.Template,
+		BotToken: input.BotToken,
+		ChatID:   input.ChatID,
+		Message:  input.Message,
 	}
 	if len(input.Headers) > 0 {
 		resp.Headers = input.Headers
@@ -712,6 +783,61 @@ func (h *handler) testWebhook(w http.ResponseWriter, r *http.Request) {
 		Success:    result.Success,
 		StatusCode: statusCode,
 		Error:      errStr,
+	})
+}
+
+func (h *handler) testTelegram(w http.ResponseWriter, r *http.Request) {
+	var input TestTelegramInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	telegram, err := dispatcher.NewTelegramDispatcher(input.Message, input.BotToken, input.ChatID)
+	if err != nil {
+		errStr := err.Error()
+		writeJSON(w, http.StatusOK, &TestWebhookResult{
+			Success: false,
+			Error:   &errStr,
+		})
+		return
+	}
+
+	mockNotification := types.Notification{
+		ID:        "test-notification",
+		Type:      types.LogNotification,
+		Detail:    "This is a test log message from Dozzle",
+		Timestamp: time.Now(),
+		Container: types.NotificationContainer{
+			ID:       "abc123",
+			Name:     "test-container",
+			Image:    "nginx:latest",
+			State:    "running",
+			Health:   "healthy",
+			HostID:   "localhost",
+			HostName: "localhost",
+			Labels:   map[string]string{"env": "test"},
+		},
+		Log: &types.NotificationLog{
+			ID:        1,
+			Message:   "This is a test log message from Dozzle",
+			Timestamp: time.Now().UnixMilli(),
+			Level:     "info",
+			Stream:    "stdout",
+			Type:      "simple",
+		},
+	}
+
+	result := telegram.SendTest(r.Context(), mockNotification)
+
+	var errStr *string
+	if result.Error != "" {
+		errStr = &result.Error
+	}
+
+	writeJSON(w, http.StatusOK, &TestWebhookResult{
+		Success: result.Success,
+		Error:   errStr,
 	})
 }
 

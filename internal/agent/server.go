@@ -468,6 +468,9 @@ func (s *server) UpdateNotificationConfig(ctx context.Context, req *pb.UpdateNot
 			URL:      d.Url,
 			Template: d.Template,
 			Headers:  d.Headers,
+			BotToken: d.BotToken,
+			ChatID:   int(d.ChatId),
+			Message:  d.Message,
 		}
 	}
 

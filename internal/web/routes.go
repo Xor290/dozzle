@@ -201,6 +201,7 @@ func createRouter(h *handler) *chi.Mux {
 
 					r.Post("/preview", h.previewExpression)
 					r.Post("/test-webhook", h.testWebhook)
+					r.Post("/test-telegram", h.testTelegram)
 				})
 
 				// Releases API

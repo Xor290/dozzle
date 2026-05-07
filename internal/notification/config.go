@@ -180,6 +180,9 @@ func (m *Manager) HandleNotificationConfig(subscriptions []types.SubscriptionCon
 			URL:      dc.URL,
 			Template: dc.Template,
 			Headers:  dc.Headers,
+			BotToken: dc.BotToken,
+			ChatID:   dc.ChatID,
+			Message:  dc.Message,
 		})
 		if err != nil {
 			log.Warn().Err(err).Str("name", dc.Name).Str("type", dc.Type).Msg("Skipping unknown dispatcher type")
@@ -201,6 +204,8 @@ func createDispatcher(config DispatcherConfig) (dispatcher.Dispatcher, error) {
 	switch config.Type {
 	case "webhook":
 		return dispatcher.NewWebhookDispatcher(config.Name, config.URL, config.Template, config.Headers)
+	case "telegram":
+		return dispatcher.NewTelegramDispatcher(config.Message, config.BotToken, config.ChatID)
 	default:
 		return nil, fmt.Errorf("unknown dispatcher type: %s", config.Type)
 	}

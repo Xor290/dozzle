@@ -5,7 +5,7 @@ package protobuf;
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "internal/agent/pb";
+option go_package = "github.com/amir20/dozzle/internal/agent/pb";
 
 message Container {
   string id = 1;
@@ -122,6 +122,10 @@ message NotificationDispatcher {
   map<string, string> headers = 6;
   // Fields 7-9 removed (cloud fields moved to NotificationCloudConfig)
   reserved 7, 8, 9;
+  // Telegram fields
+  string bot_token = 10;
+  int32 chat_id = 11;
+  string message = 12;
 }
 
 message NotificationCloudConfig {
